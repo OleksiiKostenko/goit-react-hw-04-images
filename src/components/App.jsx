@@ -1,5 +1,6 @@
 import { Searchbar } from './Searchbar/Searchbar';
-import { Component } from 'react';
+import { useEffect, useRef } from 'react';
+
 import { getImages } from '../services/getImage';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { ImageGalleryItem } from './ImageGalleryItem/ImageGalleryItem';
@@ -7,103 +8,96 @@ import { Modal } from './Modal/Modal';
 import { Button } from './Button/Button';
 import { Loader } from './Loader/Loader';
 import { Report } from 'notiflix/build/notiflix-report-aio';
+import { useInputContex } from './Context/Context';
 
-export class App extends Component {
-  state = {
-    query: '',
-    page: 1,
-    images: [],
-    isLoading: false,
-    isLoadButton: false,
-    isShowModal: false,
-    largeImage: '',
-    tags: '',
-  };
+export function App() {
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    images,
+    setImages,
+    isLoading,
+    setIsLoading,
+    isLoadBtn,
+    setIsLoadBtn,
+    isShowModal,
+    setIsShowModal,
+    largeImage,
+    setLargeImage,
+    tags,
+    setTags,
+  } = useInputContex();
 
-  handleSearch = searchQuery => {
-    if (this.state.query === searchQuery) {
+  const handleSearch = searchQuery => {
+    if (query === searchQuery) {
       return;
     }
-    this.setState({
-      query: searchQuery,
-      page: 1,
-      images: [],
-      isLoadButton: false,
-    });
+    setQuery(searchQuery);
+    setPage(1);
+    setImages([]);
+    setIsLoadBtn(false);
   };
 
-  componentDidUpdate(_, prevState) {
-    if (this.state.query.trim() === '') {
+  useEffect(() => {
+    if (query.trim() === '') {
       return Report.info('Oops', 'You need to input search value');
     }
-    if (
-      prevState.query !== this.state.query ||
-      prevState.page !== this.state.page
-    ) {
-      this.setState({ isLoading: true });
-      setTimeout(() => {
-        getImages(this.state.query, this.state.page)
-          .then(response => response.json())
-          .then(data => {
-            if (data.total === 0) {
-              return Report.info('Not found', 'Input valid search value');
+    setIsLoading(true);
+    setTimeout(() => {
+      getImages(query, page)
+        .then(response => response.json())
+        .then(data => {
+          if (data.total === 0) {
+            return Report.info('Not found', 'Input valid search value');
+          }
+          if (data.total <= 12) {
+            setImages(data.hits);
+          }
+          if (data.total > 12) {
+            if (data.hits.length < 11) {
+              setIsLoadBtn(false);
+              setImages(images => [...images, ...data.hits]);
+            } else {
+              setIsLoadBtn(true);
+              setImages(images => [...images, ...data.hits]);
             }
-            if (data.total <= 12) {
-              this.setState({ images: data.hits });
-            }
-            if (data.total > 12) {
-              data.hits.length < 11
-                ? this.setState(prevState => ({
-                    isLoadButton: false,
-                    images: [...prevState.images, ...data.hits],
-                  }))
-                : this.setState(prevState => ({
-                    isLoadButton: true,
-                    images: [...prevState.images, ...data.hits],
-                  }));
-            }
-          })
-          .catch(error => {
-            Report.failure('Error', `${error}`);
-          })
-          .finally(() => {
-            this.setState({ isLoading: false });
-          });
-      }, 1000);
-    }
-  }
+          }
+        })
+        .catch(error => {
+          Report.failure('Error', `${error}`);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }, 1000);
+  }, [page, query]);
 
-  handleClickButton = e => {
-    e.preventDefault();
-    this.setState(({ page }) => ({ page: page + 1 }));
+  const handleClickButton = e => {
+    setPage(prevPage => prevPage + 1);
   };
-  toggleModal = (image, tags) => {
-    this.setState(({ isShowModal }) => ({
-      isShowModal: !isShowModal,
-      largeImage: image,
-      tags: tags,
-    }));
+  const toggleModal = (image, tags) => {
+    setIsShowModal(!isShowModal);
+    setLargeImage(image);
+    setTags(tags);
   };
 
-  render() {
-    const { images, isLoading, isLoadButton, isShowModal, largeImage, tags } =
-      this.state;
-    return (
-      <>
-        <Searchbar onHandleSearch={this.handleSearch} />
-        {isLoading && <Loader />}
-        <ImageGallery>
-          <ImageGalleryItem toggleModal={this.toggleModal} images={images} />
-        </ImageGallery>
-        {isLoadButton && <Button onClick={this.handleClickButton} />}
-        {isShowModal && (
-          <Modal
-            largeImage={largeImage}
-            tags={tags}
-            toggleModal={this.toggleModal}
-          ></Modal>
-        )}
-      </>
-    );
-  }
+  return (
+    <>
+      <Searchbar onHandleSearch={handleSearch} />
+      {isLoading && <Loader />}
+      <ImageGallery>
+        <ImageGalleryItem toggleModal={toggleModal} images={images} />
+      </ImageGallery>
+      {isLoadBtn && <Button onClick={handleClickButton} />}
+      {isShowModal && (
+        <Modal
+          largeImage={largeImage}
+          tags={tags}
+          toggleModal={toggleModal}
+        ></Modal>
+      )}
+    </>
+  );
 }
