@@ -1,5 +1,5 @@
 import { Searchbar } from './Searchbar/Searchbar';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { getImages } from '../services/getImage';
 import { ImageGallery } from './ImageGallery/ImageGallery';
@@ -11,6 +11,7 @@ import { Report } from 'notiflix/build/notiflix-report-aio';
 import { useInputContex } from './Context/Context';
 
 export function App() {
+
   const {
     query,
     setQuery,
@@ -30,9 +31,13 @@ export function App() {
     setTags,
   } = useInputContex();
 
+
   const handleSearch = searchQuery => {
     if (query === searchQuery) {
-      return;
+      return Report.info('Oops', 'You need to input search value');
+    }
+    else if (searchQuery.trim() === '') {
+      return Report.info('Oops', 'You need to input search value');
     }
     setQuery(searchQuery);
     setPage(1);
@@ -40,9 +45,11 @@ export function App() {
     setIsLoadBtn(false);
   };
 
+
+
   useEffect(() => {
     if (query.trim() === '') {
-      return Report.info('Oops', 'You need to input search value');
+      return ;
     }
     setIsLoading(true);
     setTimeout(() => {
@@ -72,9 +79,9 @@ export function App() {
           setIsLoading(false);
         });
     }, 1000);
-  }, [page, query]);
+  }, [page, query,setImages,setIsLoadBtn,setIsLoading]);
 
-  const handleClickButton = e => {
+  const handleClickButton = () => {
     setPage(prevPage => prevPage + 1);
   };
   const toggleModal = (image, tags) => {

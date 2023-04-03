@@ -2,7 +2,7 @@ import { useState } from 'react';
 import css from '../../css/Styles.module.css';
 
 export const Searchbar = ({ onHandleSearch }) => {
-  const [query, setQuery] = useState();
+  const [query, setQuery] = useState('');
 
   const handleInputChange = evt => {
     const { value } = evt.target;
